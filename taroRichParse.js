@@ -1,8 +1,51 @@
 import Taro, {Component} from '@tarojs/taro'
 import { View } from '@tarojs/components'
 
-// var WxParse = require('./wxParse/wxParse');
-var bdParse = require('./bdParse/bdParse');
+let globalDate = {
+  fun: null,
+  template: null
+}
+
+getEnv()
+
+function getEnv() {
+  const env = Taro.getEnv()
+  if (env === ENV_TYPE.WEAPP){
+    var WxParse = require('./wxParse/wxParse');
+    globalDate.fun = wxCode()
+  } else if (env === ENV_TYPE.SWAN){
+    var bdParse = require('./bdParse/bdParse');
+    globalDate.fun = bdCode()
+  }
+}
+
+function bdCode() {
+  return function (self, that) {
+    const  content = self.state.content
+    self.setData({ content: bdParse.bdParse('article', 'html', content, that, 5), })
+    const template = (
+      <View>
+        <import src="../../bdParse/bdParse.swan" />
+        <template is="bdParse" data="{{ {bdParseData: article.nodes} }}" />
+      </View>
+    )
+    globalDate.template = template
+  }
+}
+
+function wxCode() {
+  return function (self, that) {
+    var  article = self.state.desc
+    WxParse.wxParse('article', 'html', article, that, 0)
+    const template = (
+      <View>
+        <import src='./wxParse/wxParse.wxml'/>
+        <template is="wxParse" data="{{wxParseData:article.nodes}}"/>
+      </View>
+    )
+    globalDate.template = template
+  }
+}
 
 export default class TaroRichParse extends Component {
 
@@ -29,11 +72,7 @@ export default class TaroRichParse extends Component {
     var that =  this.$scope
     if (self.state.desc) {
       console.log('有内容')
-      // var  article = self.state.desc
-      // WxParse.wxParse('article', 'html', article, that, 0)
-
-      var  content = self.state.content
-      that.setData({ content: bdParse.bdParse('article', 'html', content, that, 5), })
+      globalDate.fun(self, that)
     }
     else {
       console.log('没有获取到资源')
@@ -63,9 +102,9 @@ export default class TaroRichParse extends Component {
       <View>
         {/* <import src='./wxParse/wxParse.wxml'/>
         <template is="wxParse" data="{{wxParseData:article.nodes}}"/> */}
-
-        <import src="../../bdParse/bdParse.swan" />
-        <template is="bdParse" data="{{ {bdParseData:article.nodes} }}" />
+        {globalDate.template}
+        {/* <import src="../../bdParse/bdParse.swan" />
+        <template is="bdParse" data="{{ {bdParseData: article.nodes} }}" /> */}
       </View>
     )
   }
